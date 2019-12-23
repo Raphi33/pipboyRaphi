@@ -116,8 +116,7 @@ void runLoadSequence() {
 
   // Vault Boy Loading
   tft.fillScreen(TFT_BLACK);
-  drawBMP( "l.bmp", 0, 0, BU_BMP );
-  delay(1000);
+  char filename [] ="1.bmp";
 }
 
 // Running
