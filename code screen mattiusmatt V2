@@ -75,9 +75,20 @@ void setup()
 }
 
 void runLoadSequence() {
-  Serial.println(F("Running load sequence"));
+  //Serial.println(F("Running load sequence"));
+  
+// Splash 0
+  tft.fillScreen(TFT_BLACK);
+  loadText("0.txt", 0, 0, 0);
+  delay(1000);
 
-    // Vault Boy Loading
+  // Loading
+  tft.fillScreen(TFT_BLACK);
+  loadText("1.txt", 0, 0, 20);
+  //Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+  delay(1000);
+  
+  // Vault Boy Loading
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK); 
   // Draw bmp image top left corner at x,y = 0,0
