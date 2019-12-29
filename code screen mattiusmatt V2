@@ -1,18 +1,7 @@
+#include <TFT_HX8357.h>
 #include <Adafruit_GFX.h>
-#include <SD.h>
 #include <SPI.h>
-#include <TFT_HX8357.h>        // Hardware-specific library
-
-TFT_HX8357 tft = TFT_HX8357(); // Invoke custom library
-
-// SD chip select
-#define SDC_CS 53
-
-// TFT Pins
-// pin 11 (51) = MOSI, pin 12 (50) = MISO, pin 13 (52) = SCK
-#define TFT_RST 41
-#define TFT_DC 39
-#define TFT_CS 40
+#include <SD.h>
 
 // These are used when calling drawBMP() function
 #define BU_BMP 1 // Temporarily flip the TFT coords for standard Bottom-Up bit maps
@@ -32,6 +21,21 @@ TFT_HX8357 tft = TFT_HX8357(); // Invoke custom library
 #define ASCII_B 66
 #define ASCII_M 77
 
+// TFT Pins
+// pin 11 (51) = MOSI, pin 12 (50) = MISO, pin 13 (52) = SCK
+#define TFT_RST 41
+#define TFT_DC 39
+#define TFT_CS 40
+
+// SD Pin
+#define SD_CS 53
+
+// GPS
+#define GPS_SCREEN 3
+
+// Radio
+#define RADIO_SCREEN 4
+
 // Pip Screens
 const char PIP_0[] = "0.pip";
 const char PIP_1[] = "1.pip";
@@ -39,33 +43,60 @@ const char PIP_2[] = "2.pip";
 const char PIP_3[] = "3.pip";
 const char PIP_4[] = "4.pip";
 
+// Map Screen
+#define MAP_SCREEN 3
+#define MAP_POSX 10
+#define MAP_POSY 25
+#define MAP_WIDTH 300
+#define MAP_HEIGHT 195
+#define MAP_POS_WIDTH 17
+#define MAP_POS_HEIGHT 24
+#define PIXEL_TILE_SIZE 256.000
+//#define DEGREES_TO_RADIANS_RATIO 180.000 / PI
+#define RADIANS_TO_DEGREES_RATIO PI / 180.000
+#define ZOOM_LOCAL 15
+#define ZOOM_WORLD 9
+const char MAP_LOCAL[] = "LOCAL.BMP";
+const char MAP_WORLD[] = "WORLD.BMP";
+
 // PIP Colours
 #define PIP_GREEN 2016
 #define PIP_GREEN_2 800
 #define PIP_GREEN_3 416
 
-void setup()
-{
-  Serial.begin(9600); // For debug messages
-  delay(4000);
+// TFT
+TFT_HX8357 tft = TFT_HX8357();
 
-  tft.init(); // Initialise the display (various parameters configured)
+// Initialisation
+
+void setup() {
+  // Debug using serial
+  Serial.begin(9600);
+
+  if (!enableSD()) { return; }
+
+  if (!enableTFT()) { return; }
   
-  Serial.print(F("Initialising SD card..."));
-  if (!SD.begin(SDC_CS)) {
-    Serial.println(F("failed!"));
-  }
-
-  Serial.println(F("Here we go..."));
-
-   return true;
-
+  runLoadSequence();
 }
 
- bool enableTFT() {
-  Serial.println(F("Initialising TFT"));
+bool enableSD() {
+  //Serial.print(F("Initialising SD card..."));
+  
+  if (!SD.begin(SD_CS)) {
+    Serial.println(F("SD failed!"));
+    return false;
+  }
+  
+  //Serial.println(F("SD Initialised!"));
 
- // TFT
+  return true;
+}
+
+bool enableTFT() {
+  //Serial.println(F("Initialising TFT"));
+  
+  // TFT
   tft.begin();
   tft.setRotation(1);
   tft.setTextColor(TFT_GREEN);
@@ -77,7 +108,7 @@ void setup()
 void runLoadSequence() {
   //Serial.println(F("Running load sequence"));
   
-// Splash 0
+  // Splash 0
   tft.fillScreen(TFT_BLACK);
   loadText("0.txt", 0, 0, 0);
   delay(1000);
@@ -87,16 +118,11 @@ void runLoadSequence() {
   loadText("1.txt", 0, 0, 20);
   //Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
   delay(1000);
-  
+
   // Vault Boy Loading
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK); 
-  // Draw bmp image top left corner at x,y = 0,0
+  tft.fillScreen(TFT_BLACK);
   drawBMP("l.bmp", 95, 35, BU_BMP);
-
   delay(1000);
-
- 
 }
 
 // Running
@@ -575,8 +601,11 @@ void renderPipImage(File &pip, uint16_t x, uint16_t y) {
 
   imageName.toCharArray(imageChars, len);
 
-drawBMP(imageChars, x, y);
 
+
+
+
+ 
 }
 
 void renderPipText(File &pip, uint16_t x, uint16_t y) {
@@ -633,10 +662,6 @@ void loadText(const char file[], uint16_t x, uint16_t y, int sleep) {
   }
 }
 
-/***************************************************************************************
-** Function name:           drawBMP
-** Descriptions:            draw a BMP format bitmap to the screen
-***************************************************************************************/
 
 // This function opens a Windows Bitmap (BMP) file and
 // displays it at the given coordinates.  It's sped up
@@ -792,4 +817,3 @@ uint32_t read32(File& f) {
   ((uint8_t *)&result)[3] = f.read(); // MSB
   return result;
 }
-
