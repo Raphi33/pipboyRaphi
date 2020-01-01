@@ -135,48 +135,84 @@ void runLoadSequence() {
 
 // Running
 
+// Screens
 int currentScreen = -1;
-long currentSubScreen = 0;
+int currentSubScreen = -1;
+
+// Current Menu Option
+long currentMenuOption = 0;
 int menuOffset = 0;
 
 void loop() {  
   // Serial control
   if (Serial.available()) {
     switch(Serial.read()){
-      case '1':
+      case 'm':
+        loadMainPip();
+        break;
+
+      case 's':
+        loadSubPip();
+        break;
+    }
+
+    delay(1000);
+  }
+}
+
+void loadSubPip() {
+  int subScreen = -1;
+
+  while (subScreen == -1) {
+    subScreen = Serial.read();
+  }
+
+  drawSubScreen(subScreen, false);
+
+  currentSubScreen = subScreen;
+}
+
+void loadMainPip() {
+  int screen = -1;
+
+  while (screen == -1) {
+    screen = Serial.read();
+  }
+  
+  switch(screen) {
+      case '0':
         loadPip(PIP_0, true);
-        drawSubScreen(currentSubScreen, true);
-        loadMenuData(0);
+        currentScreen = 0;
+        break;
+
+      case '1':
+        loadPip(PIP_1, true);
         currentScreen = 1;
         break;
 
       case '2':
-        loadPip(PIP_1, true);
-        drawSubScreen(currentSubScreen, true);
-        loadMenuData(0);
+        loadPip(PIP_2, true);
         currentScreen = 2;
         break;
 
       case '3':
-        loadPip(PIP_2, true);
-        drawSubScreen(currentSubScreen, true);
-        loadMenuData(0);
+        loadPip(PIP_3, true);
         currentScreen = 3;
         break;
 
       case '4':
-        loadPip(PIP_3, true);
-        drawSubScreen(currentSubScreen, true);
+        loadPip(PIP_4, true);
         currentScreen = 4;
         break;
-
-      case '5':
-        loadPip(PIP_4, true);
-        drawSubScreen(currentSubScreen, true);
-        currentScreen = 5;
-        break;
     }
-  }
+
+    // Reset Sub Screen
+    drawSubScreen(0, true);
+    currentSubScreen = 0;
+
+    // Reset Menu Option
+    currentMenuOption = 0;
+    menuOffset = 0;
 }
 
 // Helper functions
@@ -412,13 +448,6 @@ void loadSubScreens(File &pip, uint16_t x, uint16_t y) {
 }
 
 int drawSubScreen(int current, bool force) {
-  if (current < 0) { current = 0; }
-  if (current > noOfSubScreens - 1) { current = noOfSubScreens - 1; }
-  
-  if (!force && currentSubScreen == current) {
-    return current;
-  }
-
   //Serial.print("Loading Sub Screen: ");
   //Serial.println(current);
 
@@ -476,9 +505,9 @@ int drawSubScreen(int current, bool force) {
 void loadPip(const char screen[], bool mainScreen) {
   File pip = SD.open(screen);
 
-  //Serial.println();
-  //Serial.print("Loading PIP: ");
-  //Serial.print(screen);
+  Serial.println();
+  Serial.print("Loading PIP: ");
+  Serial.print(screen);
   
   if (pip) {
     if (mainScreen) {
@@ -609,11 +638,7 @@ void renderPipImage(File &pip, uint16_t x, uint16_t y) {
 
   imageName.toCharArray(imageChars, len);
 
-
-
-
-
- 
+  drawBMP(imageChars, x, y, false);
 }
 
 void renderPipText(File &pip, uint16_t x, uint16_t y) {
@@ -670,6 +695,61 @@ void loadText(const char file[], uint16_t x, uint16_t y, int sleep) {
   }
 }
 
+
+
+/***************************************************************************************
+** Function name:           drawRAW
+** Descriptions:            draw a 565 format 16 bit raw image file
+***************************************************************************************/
+
+// This function opens a ".raw" image file and displays it at the given coordinates.
+// It is faster than plotting BMP images as the file is already in the correct
+// format to pipe directly to the display.
+// The width and height of the image in pixels must be passed to the function
+// as these parameters are not in the file
+
+// Set buffer size, 2 x this size of RAM bytes will be used in the array.
+// Reduce if RAM is short with some performance penalty
+// Powers of 2 work well
+
+#define RBUFF_SIZE 256
+
+void drawRAW(char *filename, int16_t x, int16_t y, int16_t rawWidth, int16_t rawHeight) {
+  File     rawFile;
+  uint8_t  sdbuffer[2 * RBUFF_SIZE];   // SD read pixel buffer (16 bits per pixel)
+  Serial.println(filename);
+
+  // Check file exists and open it
+  if ((rawFile = SD.open(filename)) == NULL) {
+    Serial.println(F(" File not found"));
+    return;
+  }
+
+  // Prepare the TFT screen area to receive the data
+  tft.setWindow(x, y, x + rawWidth - 1, y + rawHeight - 1);
+ 
+  // Work out how many whole buffers to send
+  uint16_t nr = ((long)rawHeight * rawWidth)/RBUFF_SIZE;
+  while(nr--) {
+    rawFile.read(sdbuffer, sizeof(sdbuffer));
+    tft.pushColors(sdbuffer, RBUFF_SIZE);
+  }
+  
+  // Send any partial buffer
+  nr = ((long)rawHeight * rawWidth)%RBUFF_SIZE;
+  if (nr) {
+    rawFile.read(sdbuffer, nr<<1); // We load  2 x nr bytes
+    tft.pushColors(sdbuffer, nr);  // We send nr 16 bit pixels
+  }
+
+  // Close the file
+  rawFile.close();
+}
+
+/***************************************************************************************
+** Function name:           drawBMP
+** Descriptions:            draw a BMP format bitmap to the screen
+***************************************************************************************/
 
 // This function opens a Windows Bitmap (BMP) file and
 // displays it at the given coordinates.  It's sped up
