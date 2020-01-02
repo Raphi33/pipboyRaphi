@@ -131,6 +131,26 @@ void runLoadSequence() {
   tft.fillScreen(TFT_BLACK);
   drawBMP("pipr1.bmp", 90, 40, BU_BMP);
   delay(1000);
+  
+   tft.fillScreen(TFT_BLACK);
+  drawBMP("pipr2.bmp", 90, 40, BU_BMP);
+  delay(4000);
+
+  tft.fillScreen(TFT_BLACK);
+  drawBMP("pipr3.bmp", 90, 40, BU_BMP);
+  delay(4000);
+
+  tft.fillScreen(TFT_BLACK);
+  drawBMP("pipr4.bmp", 90, 40, BU_BMP);
+  delay(4000);
+
+  tft.fillScreen(TFT_BLACK);
+  drawBMP("pipr5.bmp", 90, 40, BU_BMP);
+  delay(4000);
+
+  tft.fillScreen(TFT_BLACK);
+  drawBMP("pipr1.bmp", 90, 40, BU_BMP);
+  delay(4000);
 }
 
 // Running
